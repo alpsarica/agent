@@ -7,6 +7,7 @@
     agent_to_commands_topic: "agent_to_command"
     commands_to_agent_topic: "command_to_agent"
     thing_messages_topic: "thing_messages"
+    mqtt_topic: "mqtt"
     ignored_packages: [""]
 
 

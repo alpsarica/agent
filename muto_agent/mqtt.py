@@ -18,6 +18,7 @@ import threading
 
 # Third-party imports
 import rclpy
+from std_msgs.msg import String
 from muto_msgs.msg import Gateway, MutoActionMeta, Thing, ThingHeaders
 from paho.mqtt.client import MQTTMessage
 from paho.mqtt.packettypes import PacketTypes
@@ -98,6 +99,7 @@ class MQTT(BaseNode):
 
         self._pub_agent = self.create_publisher(Gateway, topics.gateway_to_agent_topic, 10)
         self._sub_agent = self.create_subscription(Gateway, topics.agent_to_gateway_topic, self._agent_msg_callback, 10)
+        self._sub_mqtt = self.create_subscription(String, topics.mqtt_topic, self._mqtt_message_callback, 10)
         self._pub_thing = self.create_publisher(Thing, topics.thing_messages_topic, 10)
 
     def _handle_mqtt_message(self, message: MQTTMessage) -> None:
@@ -168,6 +170,26 @@ class MQTT(BaseNode):
 
         except Exception as e:
             self.get_logger().error(f"Failed to handle agent message: {e}")
+
+    def _mqtt_message_callback(self, data):
+        """Handles incoming MQTT message callbacks and publishes to mqtt environment.
+
+        Constructs a specific twin topic string based on the instance's MQTT 
+        configuration (prefix, namespace, and name) and publishes the received 
+        payload to that topic using the internal MQTT manager.
+
+        Args:
+            data: An object containing the incoming message payload. It is 
+                expected to have a `data` attribute containing the raw 
+                information to be published.
+
+        Raises:
+            AttributeError: If the `data` object does not have a `data` 
+                attribute, or if `self._config` or `self._mqtt_manager` are 
+                not properly initialized.
+        """
+        twin_topic = f"{self._config.mqtt.prefix}/{self._config.mqtt.namespace}:{self._config.mqtt.name}"
+        self._mqtt_manager.publish(twin_topic, data.data)
 
     def _publish_thing_message(self, payload: dict, channel: str, action: str, meta: MutoActionMeta) -> None:
         """
